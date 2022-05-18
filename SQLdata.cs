@@ -24,8 +24,8 @@ namespace PIVisionURLAttributeIdentifier
             string _query = string.Format(" SELECT a.[DisplayID],Name ,[Server] , FullDatasource  FROM [PIVision].[dbo].[DisplayDatasources]a, [PIVision].[dbo].[View_DisplayList]b where a.DisplayID=b.DisplayID  and FullDatasource like '%|%'");
             string query = string.Format("SELECT a.[DisplayID],b.Name ,[Server] , FullDatasource, b.EditorDisplay, b.COG FROM [PIVision].[dbo].[DisplayDatasources]a, [PIVision].[dbo].[View_Displays]b where a.DisplayID=b.DisplayID  and FullDatasource like '%|%' and EditorDisplay like '%value%'");
             string __query = string.Format("SELECT distinct a.[DisplayID],b.Name , b.EditorDisplay, CAST( b.COG AS NVARCHAR(MAX) ) as COG  FROM [PIVision].[dbo].[DisplayDatasources]a, [PIVision].[dbo].[View_Displays]b where a.DisplayID=b.DisplayID  and FullDatasource like '%|%' ");
+           
             SqlConnection connection = new SqlConnection(connString);
-
             SqlCommand command = new SqlCommand(query, connection);
             connection.Open();
             SqlDataAdapter adapter = new SqlDataAdapter(command);
@@ -41,9 +41,7 @@ namespace PIVisionURLAttributeIdentifier
             datatable.Columns.Add("AFDatabase", typeof(string));
             datatable.Columns.Add("AttributePath", typeof(string));
             datatable.Columns.Add("AFattributeName", typeof(string));
-            datatable.Columns.Add("AFattributeGUID", typeof(string));
-            datatable.Columns.Add("SymbolType", typeof(string));
-            datatable.Columns.Add("SymbolValueConfig", typeof(string));
+            datatable.Columns.Add("AFattributeGUID", typeof(string));         
 
             for (int i = 0; i < datatable.Rows.Count; i++)
             {
@@ -57,7 +55,7 @@ namespace PIVisionURLAttributeIdentifier
                     string elementPath = subs[0];
                     string[] subs2 = FullDataSource.Split('|');
                     /*string attributeName = "|"+subs2[1].Split('?')[0];*/
-                    string attributeName = subs[1].Substring(36);
+                    string attributeName = subs[1].Substring(36); //removing initial 36 characters representing GUID + 1 character representing the pipe |
                     string attributePath = elementPath + attributeName;
 
                     datatable.Rows[i]["AFDatabase"] = databasename;
@@ -75,7 +73,6 @@ namespace PIVisionURLAttributeIdentifier
                 }
             }
             return datatable;
-
         }
 
         public void FormatDatatable_getSymbolconfig(DataTable datatable)
@@ -83,6 +80,8 @@ namespace PIVisionURLAttributeIdentifier
             datatable.Columns.Add("SymbolNumber", typeof(string));
             datatable.Columns.Add("AFData_ID", typeof(string));
             datatable.Columns.Add("LabelType", typeof(string));
+            datatable.Columns.Add("CustomLabel", typeof(string));
+            List<String[]> Symbols_AFDataID = new List<String[]>();
 
             //filling the datatable with AFData_ID
             for (int i = 0; i < datatable.Rows.Count; i++)
@@ -117,17 +116,40 @@ namespace PIVisionURLAttributeIdentifier
                                 }
                             }
                         }
+                        if (node.Name == "Symbols")
+                        {
+                            if (node.HasChildNodes)
+                            {
+                                foreach (XmlNode childnode in node)
+                                {
+                                    string AFData_ID = childnode.InnerXml.Split('\"')[1];
+                                    string SymbolNum = childnode.OuterXml.Split('\"')[1];
+                                    string[] AFData_ID_SymbolNum = { AFData_ID, SymbolNum };
+                                    Symbols_AFDataID.Add(AFData_ID_SymbolNum);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int j = 0; j < Symbols_AFDataID.Count; j++)
+                {
+                    /*                  string var1 = datatable.Rows[i]["AFData_ID"].ToString();
+                                        string var2 = Symbols_AFDataID[j][0];*/
+                    if (datatable.Rows[i]["AFData_ID"].ToString() == Symbols_AFDataID[j][0])
+                    {
+                        datatable.Rows[i]["SymbolNumber"] = Symbols_AFDataID[j][1];
+                        /*string var3 = Symbols_AFDataID[j][1];*/
+                        /*Console.WriteLine("Attribute: "+ datatable.Rows[i]["AFattributeName"] + "AFDataID: " + datatable.Rows[i]["AFData_ID"] + " SymbolNumber: " + datatable.Rows[i]["SymbolNumber"]);*/
                     }
 
                 }
-               
             }
 
-            for (int i = 0; i < datatable.Rows.Count; i++)
+           /* for (int i = 0; i < datatable.Rows.Count; i++)
             {
                 XmlDocument xdoc = new XmlDocument();
                 xdoc.LoadXml(datatable.Rows[i]["COG"].ToString());
-                List<String[]> Symbols_AFDataID=new List<String[]>();
+                
  
                 XmlNode root = xdoc.FirstChild;
                 if (root.HasChildNodes)
@@ -144,40 +166,33 @@ namespace PIVisionURLAttributeIdentifier
                                     string SymbolNum= childnode.OuterXml.Split('\"')[1];
                                     string[] AFData_ID_SymbolNum = { AFData_ID, SymbolNum };
                                     Symbols_AFDataID.Add(AFData_ID_SymbolNum);
-                                }
-                                
+                                }                          
                             }
                         }
                     }
 
                 }
-                for (int j = 0; j < Symbols_AFDataID.Count; j++)
-                {
-                    string var1 = datatable.Rows[i]["AFData_ID"].ToString();
-                    string var2 = Symbols_AFDataID[j][0];
-                    if (datatable.Rows[i]["AFData_ID"].ToString() == Symbols_AFDataID[j][0])
-                    {
-                        datatable.Rows[i]["SymbolNumber"] = Symbols_AFDataID[j][1];
-                        string var3 = Symbols_AFDataID[j][1];
-                        /*Console.WriteLine("Attribute: "+ datatable.Rows[i]["AFattributeName"] + "AFDataID: " + datatable.Rows[i]["AFData_ID"] + " SymbolNumber: " + datatable.Rows[i]["SymbolNumber"]);*/
-                    }
-
-                }
-            }
+               
+            }*/
            
-            for(int i = 0; i < datatable.Rows.Count; i++)
+
+            for (int i = 0; i < datatable.Rows.Count; i++)
             {
-                datatable.Rows[i]["LabelType"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString());
+                datatable.Rows[i]["LabelType"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString()).Item1;
 /*                Console.WriteLine("Display: " + datatable.Rows[i]["Name"] + ", Attribute: " + datatable.Rows[i]["AFattributeName"] + " AFDataID: " + datatable.Rows[i]["AFData_ID"] + " SymbolNumber: " + datatable.Rows[i]["SymbolNumber"] + " ,symbolType: " + datatable.Rows[i]["LabelType"]);
-*/
+*/              if (datatable.Rows[i]["LabelType"].ToString() == "C")
+                {
+                    datatable.Rows[i]["CustomLabel"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString()).Item2;
+                }
             }
 
         }
 
-        public string getValueSymbolConfiguration(string editorDisplay, string SymbolNumber)
+        public Tuple<string,string> getValueSymbolConfiguration(string editorDisplay, string SymbolNumber)
         {
             //return configuration of Value symbolNumber
             string valueSymbolConfig = null;
+            string customName = null;
             JObject json = JObject.Parse(editorDisplay.ToString());
             foreach (var item in json["Symbols"])
             {
@@ -197,6 +212,10 @@ namespace PIVisionURLAttributeIdentifier
                             else
                             {
                                 valueSymbolConfig = config["NameType"].ToString();
+                                if (valueSymbolConfig == "C")
+                                {
+                                    customName = config["CustomName"].ToString();
+                                }
                             }
                         }                    
                     }
@@ -214,11 +233,15 @@ namespace PIVisionURLAttributeIdentifier
                         else
                         {
                             valueSymbolConfig = config["NameType"].ToString();
+                            if (valueSymbolConfig == "C")
+                            {
+                                customName = config["CustomName"].ToString();
+                            }
                         }
                     }
                 }
             }
-            return valueSymbolConfig;
+            return new Tuple<string, string>(valueSymbolConfig,customName);
         }
         public void TestingSQLConnection(string sqlserver)
         {
@@ -243,6 +266,7 @@ namespace PIVisionURLAttributeIdentifier
 
                 try
                 {
+                    util.WriteInYellow("Validating connection to the PIVision SQL database...");
                     TestingSQLConnection(sqlInstance);
                     repeat = false;
                 }

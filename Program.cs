@@ -15,29 +15,31 @@ namespace PIVisionURLAttributeIdentifier
     {
         static StreamWriter file = new StreamWriter("PIVisionAttributeList_output.txt", append: false);
 
-
         static void Main(string[] args)
         {
-
             file.AutoFlush = true;
             /* file.WriteLine("test");*/
 
             SQLdata visiondata = new SQLdata();
             Utilities util = new Utilities();
 
+            Console.WriteLine(" This utility scans all PI Vision displays and identifies attributes of type URi Builder DR");
+            Console.WriteLine(" Only attributes attached to Value symbols are returned.");
+            Console.WriteLine(" Label type definition: F=Full, A=Asset, P=Partial, D=Description, C=Custom");
+            Console.WriteLine(); //linebreak
+
             string sqlInstance = visiondata.ValidatingSQLConnection();
+            util.WriteInGreen("Connection to the PIVision SQL database successful");
+            util.WriteInGreen("Retrieving records...");
             DataTable VisionDataTable = visiondata.PullVisionAttributesGUIDlist(sqlInstance);
             VisionDataTable = visiondata.FormatDatable_create_attribute_element_columns(VisionDataTable);
 
-            /*            foreach(DataRow dr in VisionDataTable.Rows)
-                        {
-                            Console.WriteLine("attribute name: " + dr["AFattributeName"] + ", GUID: " + dr["AFattributeGUID"]);
-                        }*/
             visiondata.FormatDatatable_getSymbolconfig(VisionDataTable);
 
-            bool confirm = util.Confirm("List only value symbol URI Builder DR attributes? If not, it will list all DR attributes attached to value symbols");
+            /*            bool confirm = util.Confirm("List only value symbol URI Builder DR attributes? If not, it will list all DR attributes attached to value symbols");*/
+/*            bool confirm = util.Confirm("Continue?");
             if (confirm)
-            {
+            {*/
                 util.WriteInBlue("Display: " + VisionDataTable.Rows[0][1]);
                 file.WriteLine("Display: " + VisionDataTable.Rows[0][1]); // writing to the output file
                 PrintOnlyURLBuilderDRAttr2(VisionDataTable, 0);
@@ -54,9 +56,9 @@ namespace PIVisionURLAttributeIdentifier
                     }
                     PrintOnlyURLBuilderDRAttr2(VisionDataTable, i);
                 }
-            }
+ /*           }*/
 
-            else
+           /* else
             {
                 util.WriteInBlue("Display: " + VisionDataTable.Rows[0][1]);
 
@@ -79,8 +81,8 @@ namespace PIVisionURLAttributeIdentifier
 
                     PrintAttributeDetail2(VisionDataTable, i);
                 }
-            }
-            util.WriteInGreen("Output has been saved under: PIVisionAttributeList_output.txt");
+            }*/
+            util.WriteInGreen("Output has been saved under: PIVision_URiAttr_IdentifierList_output.txt");
             util.PressEnterToExit();
         }
 
@@ -180,7 +182,29 @@ namespace PIVisionURLAttributeIdentifier
                     if (afAtt.DataReferencePlugIn != null)
                         if (afAtt.DataReferencePlugIn.ToString() == "URI Builder")
                         {
-                            util.WriteInYellow("Attr_name: " + afAtt.Name + " | DR: " + afAtt.DataReferencePlugIn + " | path: " + afAtt.GetPath() + " | Value: "+afAtt.GetValue()+ " | Description: "+afAtt.Description + " | LabelType: " + VisionDataTable.Rows[i]["LabelType"]);
+                            string label = (VisionDataTable.Rows[i]["LabelType"].ToString() == "P")? VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1) : "f";
+
+                            switch (VisionDataTable.Rows[i]["LabelType"].ToString())
+                            {
+                                case "default":
+                                    /*label = VisionDataTable.Rows[i]["AttributePath"].ToString();*/                                   
+                                    label = afAtt.GetPath().Substring(afAtt.Database.GetPath().Length).Substring(1);
+                                    break;
+                                case "P":
+                                    label = VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1);
+                                    break;
+                                case "D":
+                                    label = afAtt.Description;
+                                    break;
+                                case "A":
+                                    label = afAtt.Element.Name;
+                                    break;
+                                case "C":
+                                    label = VisionDataTable.Rows[i]["CustomLabel"].ToString();
+                                    break;
+                            }
+
+                            util.WriteInYellow("Attr_name: " + afAtt.Name  +" | LabelType: " + VisionDataTable.Rows[i]["LabelType"]+" | Label: "+label );
 
                             file.WriteLine("Attr_name: " + afAtt.Name + " | DR: " + afAtt.DataReferencePlugIn + " | symbol#: " + VisionDataTable.Rows[i]["SymbolNumber"] + " | path: " + afAtt.GetPath() + " | Value: " + afAtt.GetValue() + " | Description: " + afAtt.Description + " | LabelType: " + VisionDataTable.Rows[i]["LabelType"]); // writing to the output file
                         }
