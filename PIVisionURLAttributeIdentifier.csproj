@@ -92,6 +92,13 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Queries\connectionString.txt" />
+    <Content Include="Queries\query.sql">
+      <SubType>Designer</SubType>
+      <Generator>MSDataSetGenerator</Generator>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="packages\System.Text.Json.6.0.4\build\System.Text.Json.targets" Condition="Exists('packages\System.Text.Json.6.0.4\build\System.Text.Json.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

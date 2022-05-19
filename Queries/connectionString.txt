@@ -1,0 +1,1 @@
+﻿Server={sqlserver};Database=PIVision;Integrated Security=true;MultipleActiveResultSets=true
