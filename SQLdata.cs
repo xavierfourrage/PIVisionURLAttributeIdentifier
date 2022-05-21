@@ -35,6 +35,187 @@ namespace PIVisionURLAttributeIdentifier
             return dataTable;
         }
 
+        public DataTable formatDTandAddRowBasedOnCOG(DataTable DT)
+        {
+            DataTable attTable = new AFAttributeTable().createDT();
+
+            foreach (DataRow r in DT.Rows)
+            {
+                //inject DisplayID + DisplayName
+                DataTable dt=readCOG(r["COG"].ToString());
+                foreach( DataRow newrow in dt.Rows)
+                {
+                    DataRow row = attTable.NewRow();
+                    row["DisplayID"] = r["DisplayID"];
+                    row["Name"] = r["Name"];
+                    row["Server"] = newrow["Server"];
+                    
+                    row["EditorDisplay"] = r["EditorDisplay"];
+                    row["COG"] = r["COG"];
+                   
+                    row["AFDatabase"] = newrow["AFDatabase"];
+                    row["AttributePath"] = newrow["AttributePath"];
+                    row["AFattributeName"] = newrow["AFattributeName"];
+                    row["AFattributeGUID"] = newrow["AFattributeGUID"];
+                    row["SymbolNum"] = newrow["SymbolNum"];
+                    row["LabelType"] = "";
+                    row["CustomLabel"] = "";
+                    attTable.Rows.Add(row);
+
+                }
+                
+            }
+
+            return attTable;
+        }
+
+        public DataTable readCOG(string COG)
+        {
+            IDictionary<string, string[]> AFInfo = new Dictionary<string, string[]>(); //AF_ID,(AF Server, AF Database)
+            List<string[]> AFData_ID_SymbolNum = new List<string[]>(); //AFData_ID_SymbolNumber
+
+            IDictionary<string, string[]> AttributeProperties = new Dictionary<string, string[]>(); //(AFData_ID,attpropList);
+
+            DataTable attributeTable = new DataTable();
+            attributeTable.Columns.Add("Server", typeof(string));      
+            attributeTable.Columns.Add("AFDatabase", typeof(string));
+            attributeTable.Columns.Add("AttributePath", typeof(string));
+            attributeTable.Columns.Add("AFattributeName", typeof(string));
+            attributeTable.Columns.Add("AFattributeGUID", typeof(string));
+            attributeTable.Columns.Add("AFData_ID", typeof(string));
+            attributeTable.Columns.Add("dBRef", typeof(string));
+            attributeTable.Columns.Add("SymbolNum", typeof(string));
+
+            XmlDocument xdoc = new XmlDocument();
+                    xdoc.LoadXml(COG);
+
+                    XmlNode root = xdoc.FirstChild;
+                    if (root.HasChildNodes)
+                    {
+                        foreach (XmlNode node in root)
+                        {
+                            if (node.Name == "Databases")
+                            {
+                                if (node.HasChildNodes)
+                                {                               
+                                    foreach (XmlNode childnode in node)
+                                    {
+                                        if (!childnode.OuterXml.Contains("<PI ID="))
+                                        {
+                                            /* <AF Id="AF_402655" Node="CSAF" Db="Wells" />*/
+                                            var afInfo = childnode.OuterXml.Split('\"');
+                                            string AF_Id = afInfo[1];
+                                            string AFServer = afInfo[3];
+                                            string AFDatabase = afInfo[5];
+
+                                            string[] af_array = { AFServer, AFDatabase };
+                                            AFInfo.Add(AF_Id, af_array);
+                                        }
+                                    }
+                                }
+                            }
+                            /*Console.WriteLine(node.Name);*/
+                            if (node.Name == "Datasources")
+                            {
+                                if (node.HasChildNodes)
+                                {
+                                    /*Console.WriteLine(node.InnerXml);*/
+                                    foreach (XmlNode childnode in node)
+                                    {
+                                        if (childnode.OuterXml.Contains("AFData"))
+                                        {
+                                            string attribute = childnode.InnerXml.Split('\"')[1];
+                                            if (!attribute.Contains("*"))
+                                            {
+                                                string attributeName = attribute.Split('?')[0];
+                                                string attributeGUID = attribute.Split('?')[1];
+                                                string AFData_ID = childnode.OuterXml.Split('\"')[1]; /*    <AFData Id="AF_57399" DbRef="AF_402655">*/
+                                                string dBRef = childnode.OuterXml.Split('\"')[3];
+                                                string elementPath = childnode.InnerXml.Split('\"')[3].Split('?')[0];
+                                                string attributePath = elementPath + "|" + attributeName;
+
+                                                /*                                            DataRow row = attributeTable.NewRow();
+
+                                                                                            row["AttributePath"] =attributePath ;
+                                                                                            row["AFattributeName"] = attributeName;
+                                                                                            row["AFattributeGUID"] = attributeGUID;
+                                                                                            row["AFData_ID"] = AFData_ID;
+                                                                                            row["dBRef"] = dBRef;
+                                                                                            attributeTable.Rows.Add(row);*/
+                                                string[] attpropList = { attributePath, attributeName, attributeGUID, dBRef };
+                                                AttributeProperties.Add(AFData_ID, attpropList);
+
+                                            }
+                                        }
+                                         
+                                    }
+                                }
+                            }
+                            if (node.Name == "Symbols")
+                            {
+                                if (node.HasChildNodes)
+                                {
+                                   
+                                    foreach (XmlNode childnode in node)
+                                    {
+                                        string AFData_ID = childnode.InnerXml.Split('\"')[1];
+                                        string SymbolNum = childnode.OuterXml.Split('\"')[1];
+                                        string[] list = { AFData_ID, SymbolNum };
+
+                                        AFData_ID_SymbolNum.Add(list);
+                                      
+                                    }
+                                }
+                            }
+                            
+                        }
+                    }
+                
+                    for(int i=0; i< AFData_ID_SymbolNum.Count;i++)
+                    {
+                        if (AttributeProperties.TryGetValue(AFData_ID_SymbolNum[i][0], out string[] attproptList ))
+                        {
+
+                        DataRow row = attributeTable.NewRow();
+
+                        row["AttributePath"] = attproptList[0];
+                        row["AFattributeName"] = attproptList[1];
+                        row["AFattributeGUID"] = attproptList[2];                       
+                         row["dBRef"] = attproptList[3];
+                         row["AFData_ID"] = AFData_ID_SymbolNum[i][0];
+                        row["SymbolNum"] = AFData_ID_SymbolNum[i][1];
+                        attributeTable.Rows.Add(row);
+
+                        }
+
+                    }
+                    for (int j = 0; j < attributeTable.Rows.Count; j++)
+                    {
+
+                        if (AFInfo.TryGetValue(attributeTable.Rows[j]["dBRef"].ToString(), out string[] AFServer_AFDatabase))
+                        {
+                            attributeTable.Rows[j]["Server"] = AFServer_AFDatabase[0];
+                            attributeTable.Rows[j]["AFDatabase"] = AFServer_AFDatabase[1];
+
+                        }
+                    }
+
+            return attributeTable;
+        }
+
+        public DataTable UpdateDTwithValueSymbolConfig(DataTable dt)
+        {
+            foreach (DataRow dr in dt.Rows)
+            {
+                var test = dr["EditorDisplay"].ToString();
+                var test1 = dr["SymbolNum"].ToString();
+                Tuple<string, string> tpl = getValueSymbolConfiguration(dr["EditorDisplay"].ToString(), dr["SymbolNum"].ToString());
+                dr["LabelType"] = tpl.Item1;
+                dr["CustomLabel"] = tpl.Item2;
+            }
+            return dt; 
+        }
+
         public DataTable FormatDatable_create_attribute_element_columns(DataTable datatable)
         {          
             datatable.Columns.Add("AFDatabase", typeof(string));
@@ -45,20 +226,20 @@ namespace PIVisionURLAttributeIdentifier
             datatable.Columns.Add("CustomLabel", typeof(string));
 
             //create temp table and inject it into master DT
-            DataTable tempdatatable = new DataTable();
-            tempdatatable.Columns.Add("DisplayID", typeof(string));
-            tempdatatable.Columns.Add("Name", typeof(string));
-            tempdatatable.Columns.Add("Server", typeof(string));
-            tempdatatable.Columns.Add("FullDatasource", typeof(string));
-            tempdatatable.Columns.Add("EditorDisplay", typeof(string));
-            tempdatatable.Columns.Add("COG", typeof(string));
-            tempdatatable.Columns.Add("Collection", typeof(string));
-            tempdatatable.Columns.Add("AFDatabase", typeof(string));
-            tempdatatable.Columns.Add("AttributePath", typeof(string));
-            tempdatatable.Columns.Add("AFattributeName", typeof(string));
-            tempdatatable.Columns.Add("AFattributeGUID", typeof(string));
-            tempdatatable.Columns.Add("LabelType", typeof(string));
-            tempdatatable.Columns.Add("CustomLabel", typeof(string));
+            DataTable attributeTable = new DataTable();
+            attributeTable.Columns.Add("DisplayID", typeof(string));
+            attributeTable.Columns.Add("Name", typeof(string));
+            attributeTable.Columns.Add("Server", typeof(string));
+            attributeTable.Columns.Add("FullDatasource", typeof(string));
+            attributeTable.Columns.Add("EditorDisplay", typeof(string));
+            attributeTable.Columns.Add("COG", typeof(string));
+            attributeTable.Columns.Add("Collection", typeof(string));
+            attributeTable.Columns.Add("AFDatabase", typeof(string));
+            attributeTable.Columns.Add("AttributePath", typeof(string));
+            attributeTable.Columns.Add("AFattributeName", typeof(string));
+            attributeTable.Columns.Add("AFattributeGUID", typeof(string));
+            attributeTable.Columns.Add("LabelType", typeof(string));
+            attributeTable.Columns.Add("CustomLabel", typeof(string));
 
             for (int i = 0; i < datatable.Rows.Count; i++)
             {
@@ -102,7 +283,7 @@ namespace PIVisionURLAttributeIdentifier
 
                     foreach (List<string> attList in attDetails)
                     {                       
-                        DataRow row = tempdatatable.NewRow();
+                        DataRow row = attributeTable.NewRow();
                         row["DisplayID"] = datatable.Rows[i]["DisplayID"];
                         row["Name"] = datatable.Rows[i]["Name"];
                         row["Server"] = attList[0];
@@ -117,12 +298,12 @@ namespace PIVisionURLAttributeIdentifier
                         row["LabelType"]=attList[5]; ;
                         row["CustomLabel"]= attList[6]; ;
 
-                        tempdatatable.Rows.Add(row);
+                        attributeTable.Rows.Add(row);
                     }
                 }
 
             }
-            foreach (DataRow newrow in tempdatatable.Rows)
+            foreach (DataRow newrow in attributeTable.Rows)
             {
                 DataRow row = datatable.NewRow();
                 row["DisplayID"] = newrow["DisplayID"];

@@ -34,8 +34,16 @@ namespace PIVisionURLAttributeIdentifier
             DataTable VisionDataTable = visiondata.PullVisionAttributesGUIDlist(sqlInstance);
             util.WriteInGreen("SQL records retrieved");
             util.WriteInYellow("Formatting records...");
-            VisionDataTable = visiondata.FormatDatable_create_attribute_element_columns(VisionDataTable);
-            visiondata.FormatDatatable_getSymbolconfig(VisionDataTable);
+
+            //Testing faster way to retrieve and format dataTable
+            VisionDataTable= visiondata.UpdateDTwithValueSymbolConfig(visiondata.formatDTandAddRowBasedOnCOG(VisionDataTable));
+           
+
+           /* VisionDataTable = visiondata.FormatDatable_create_attribute_element_columns(VisionDataTable);
+
+            
+
+            visiondata.FormatDatatable_getSymbolconfig(VisionDataTable);*/
 
                 util.WriteInBlue("DisplayID "+ VisionDataTable.Rows[0]["DisplayID"] +": "+ VisionDataTable.Rows[0]["Name"]);
                 file.WriteLine("Display: " + VisionDataTable.Rows[0][1]); // writing to the output file
@@ -81,7 +89,7 @@ namespace PIVisionURLAttributeIdentifier
                         {*/
                             /*string label = (VisionDataTable.Rows[i]["LabelType"].ToString() == "P")? VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1) : "f";*/
                             string label="";
-
+                    var test = VisionDataTable.Rows[i]["LabelType"];
                             switch (VisionDataTable.Rows[i]["LabelType"].ToString())
                             {
                                 case "F":                                   
@@ -125,7 +133,7 @@ namespace PIVisionURLAttributeIdentifier
                                 , " | LabelType: " + VisionDataTable.Rows[i]["LabelType"]
                                 ," | Label: "+label );
                     Console.ForegroundColor = ConsoleColor.White;
-                    file.WriteLine("Attr_name: " + afAtt.Name + " , DR: " + datareference + " , symbol#: " + VisionDataTable.Rows[i]["SymbolNumber"]  + " , LabelType: " + VisionDataTable.Rows[i]["LabelType"] + " , Label: " + label + " , path: " + afAtt.GetPath() + " , Value: " + afAtt.GetValue() + " , Description: " + afAtt.Description); // writing to the output file
+                    file.WriteLine("Attr_name: " + afAtt.Name + " , DR: " + datareference + " , symbol#: " + VisionDataTable.Rows[i]["SymbolNum"]  + " , LabelType: " + VisionDataTable.Rows[i]["LabelType"] + " , Label: " + label + " , path: " + afAtt.GetPath() + " , Value: " + afAtt.GetValue() + " , Description: " + afAtt.Description); // writing to the output file
                         /* }*/
                     /*}*/
                 }
