@@ -43,6 +43,11 @@ namespace PIVisionURLAttributeIdentifier
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine(text);
         }
+        public void WriteInGray(string text)
+        {
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine(text);
+        }
 
         public void WriteInBlue(string text)
         {

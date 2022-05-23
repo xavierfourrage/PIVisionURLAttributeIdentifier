@@ -24,29 +24,25 @@ namespace PIVisionURLAttributeIdentifier
             Utilities util = new Utilities();
 
             Console.WriteLine("This utility scans all PIVision displays and returns all attributes attached to Value symbols, with their label.");
-            Console.WriteLine("Attribute is assumed to be used only once per display. Only attributes with GUIDs in COG are returned");
-            Console.WriteLine("Label type definition: F=Full (default), A=Asset, P=Partial, D=Description, C=Custom");
+            Console.WriteLine("Label type definition: F=Full (default), A=Asset, P=Partial, D=Description, C=Custom. (col=Collection)");
             Console.WriteLine(); //linebreak
 
             string sqlInstance = visiondata.ValidatingSQLConnection();
             util.WriteInGreen("Connection to the PIVision SQL database successful");
-            util.WriteInYellow("Retrieving SQL records...");
+            util.WriteInGray("Retrieving SQL records...");
             DataTable VisionDataTable = visiondata.PullVisionAttributesGUIDlist(sqlInstance);
             util.WriteInGreen("SQL records retrieved");
-            util.WriteInYellow("Formatting records...");
+            util.WriteInGray("Formatting records...");
 
-            //Testing faster way to retrieve and format dataTable
-            VisionDataTable= visiondata.UpdateDTwithValueSymbolConfig(visiondata.formatDTandAddRowBasedOnCOG(VisionDataTable));
-           
+            //Testing faster way to retrieve and format dataTable           
+            VisionDataTable = visiondata.formatDTandAddRowBasedOnCOGandEditorDisplay(VisionDataTable);
+            visiondata.UpdateDTwithValueSymbolConfig(VisionDataTable);
 
-           /* VisionDataTable = visiondata.FormatDatable_create_attribute_element_columns(VisionDataTable);
+            util.WriteInGreen("Records formatted. DataTable created.");
+            util.WriteInGray("Retrieving meta data from AF...");
 
-            
-
-            visiondata.FormatDatatable_getSymbolconfig(VisionDataTable);*/
-
-                util.WriteInBlue("DisplayID "+ VisionDataTable.Rows[0]["DisplayID"] +": "+ VisionDataTable.Rows[0]["Name"]);
-                file.WriteLine("Display: " + VisionDataTable.Rows[0][1]); // writing to the output file
+            util.WriteInBlue("DisplayID "+ VisionDataTable.Rows[0]["DisplayID"] +": "+ VisionDataTable.Rows[0]["Name"]);
+                file.WriteLine("DisplayID " + VisionDataTable.Rows[0]["DisplayID"] + ": " + VisionDataTable.Rows[0]["Name"]); // writing to the output file
                 PrintOnlyURLBuilderDRAttr2(VisionDataTable, 0);
 
                 for (int i = 1; i < VisionDataTable.Rows.Count; i++)
@@ -81,13 +77,6 @@ namespace PIVisionURLAttributeIdentifier
                 AFAttribute afAtt = vizAttribut.SearchAndPrint3(attributePath, myDB);
                 if (afAtt != null)
                 {
-                   /* if (afAtt.DataReferencePlugIn != null)
-                    {*/
-
-                    
-                       /* if (afAtt.DataReferencePlugIn.ToString() == "String Builder" || afAtt.DataReferencePlugIn.ToString() == "" || afAtt.DataReferencePlugIn.ToString() == "URI Builder")
-                        {*/
-                            /*string label = (VisionDataTable.Rows[i]["LabelType"].ToString() == "P")? VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1) : "f";*/
                             string label="";
                     var test = VisionDataTable.Rows[i]["LabelType"];
                             switch (VisionDataTable.Rows[i]["LabelType"].ToString())
@@ -96,7 +85,7 @@ namespace PIVisionURLAttributeIdentifier
                                     label = afAtt.GetPath().Substring(afAtt.Database.GetPath().Length).Substring(1);
                                     break;
                                 case "P":
-                                    label = VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1);
+                                    label = VisionDataTable.Rows[i]["AFattributeName"].ToString();
                                     break;
                                 case "D":
                                     label = afAtt.Description;
@@ -107,19 +96,19 @@ namespace PIVisionURLAttributeIdentifier
                                 case "C":
                                     label = VisionDataTable.Rows[i]["CustomLabel"].ToString();
                                     break;
-                                case "F (collection)":                                   
+                                case "F (col)":                                   
                                     label = afAtt.GetPath().Substring(afAtt.Database.GetPath().Length).Substring(1);
                                     break;
-                                case "P (collection)":
+                                case "P (col)":
                                     label = VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1);
                                     break;
-                                case "D (collection)":
+                                case "D (col)":
                                     label = afAtt.Description;
                                     break;
-                                case "A (collection)":
+                                case "A (col)":
                                     label = afAtt.Element.Name;
                                     break;
-                                case "C (collection)":
+                                case "C (col)":
                                     label = VisionDataTable.Rows[i]["CustomLabel"].ToString();
                                     break;
                     }
@@ -127,7 +116,7 @@ namespace PIVisionURLAttributeIdentifier
                     string datareference = (afAtt.DataReferencePlugIn != null) ? afAtt.DataReferencePlugIn.ToString() : "None";
 
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("{0,-40}{1,-23}{2,-28}{3,-40}",
+                    Console.WriteLine("{0,-40}{1,-23}{2,-21}{3,5}",
                                 "Attr_name: " + afAtt.Name 
                                 , " | DR: " + datareference 
                                 , " | LabelType: " + VisionDataTable.Rows[i]["LabelType"]

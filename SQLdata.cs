@@ -20,8 +20,7 @@ namespace PIVisionURLAttributeIdentifier
         {
             DataTable dataTable = new DataTable();
             string connString = $@"Server={sqlserver};Database=PIVision;Integrated Security=true;MultipleActiveResultSets=true"; /*---> using integrated security*/
-            /*string connString = $@"Server={sqlserver};Database=PIVision;User ID=XavierF;password=XavierF!!;MultipleActiveResultSets=true";*/ /*---> using SQL user*/
-          
+                    
             string query = File.ReadAllText(@"..\..\Queries\query.sql");
 
             SqlConnection connection = new SqlConnection(connString);
@@ -35,7 +34,7 @@ namespace PIVisionURLAttributeIdentifier
             return dataTable;
         }
 
-        public DataTable formatDTandAddRowBasedOnCOG(DataTable DT)
+        public DataTable formatDTandAddRowBasedOnCOGandEditorDisplay(DataTable DT)
         {
             DataTable attTable = new AFAttributeTable().createDT();
 
@@ -63,7 +62,31 @@ namespace PIVisionURLAttributeIdentifier
                     attTable.Rows.Add(row);
 
                 }
-                
+                if (r["EditorDisplay"].ToString().Contains("StencilSymbols")) //checking if Display contains collection
+                {
+                    List<List<string>> attDetails = getCollectionAttributeDetails(r["EditorDisplay"].ToString());
+                    
+                    foreach (List<string> l in attDetails)
+                    {
+                        DataRow row = attTable.NewRow();
+                        row["DisplayID"] = r["DisplayID"];
+                        row["Name"] = r["Name"];
+                        row["Server"] = l[0];
+
+                        row["EditorDisplay"] = r["EditorDisplay"];
+                        row["COG"] = r["COG"];
+
+                        row["AFDatabase"] = l[1];
+                        row["AttributePath"] = l[2];
+                        row["AFattributeName"] = l[3];
+                        row["AFattributeGUID"] = l[4];
+                        row["SymbolNum"] = "";
+                        row["LabelType"] = l[5];
+                        row["CustomLabel"] = l[6];
+
+                        attTable.Rows.Add(row);
+                    }
+                }               
             }
 
             return attTable;
@@ -125,29 +148,37 @@ namespace PIVisionURLAttributeIdentifier
                                         if (childnode.OuterXml.Contains("AFData"))
                                         {
                                             string attribute = childnode.InnerXml.Split('\"')[1];
-                                            if (!attribute.Contains("*"))
+                                            if (attribute.Contains('?'))
+                                            {
+                                                if (!attribute.Contains("*"))
+                                                {
+                                                    string attributeName = attribute.Split('?')[0];
+                                                    string attributeGUID = attribute.Split('?')[1];
+                                                    string AFData_ID = childnode.OuterXml.Split('\"')[1]; /*    <AFData Id="AF_57399" DbRef="AF_402655">*/
+                                                    string dBRef = childnode.OuterXml.Split('\"')[3];
+                                                    string elementPath = childnode.InnerXml.Split('\"')[3].Split('?')[0];
+                                                    string attributePath = elementPath + "|" + attributeName;
+
+                                                    string[] attpropList = { attributePath, attributeName, attributeGUID, dBRef };
+                                                    AttributeProperties.Add(AFData_ID, attpropList);
+
+                                                }
+                                            }
+                                    /*      <AFAttribute Name="Reactor - Operating Windows Parameters (Alarm)" ElementPath="FCC\PAR" />*/
+                                            else
                                             {
                                                 string attributeName = attribute.Split('?')[0];
-                                                string attributeGUID = attribute.Split('?')[1];
-                                                string AFData_ID = childnode.OuterXml.Split('\"')[1]; /*    <AFData Id="AF_57399" DbRef="AF_402655">*/
-                                                string dBRef = childnode.OuterXml.Split('\"')[3];
-                                                string elementPath = childnode.InnerXml.Split('\"')[3].Split('?')[0];
-                                                string attributePath = elementPath + "|" + attributeName;
+                                                string attributeGUID = "";
+                                                    string AFData_ID = childnode.OuterXml.Split('\"')[1]; /*    <AFData Id="AF_57399" DbRef="AF_402655">*/
+                                                    string dBRef = childnode.OuterXml.Split('\"')[3];
+                                                    string elementPath = childnode.InnerXml.Split('\"')[3];
+                                                    string attributePath = elementPath + "|" + attributeName;
 
-                                                /*                                            DataRow row = attributeTable.NewRow();
-
-                                                                                            row["AttributePath"] =attributePath ;
-                                                                                            row["AFattributeName"] = attributeName;
-                                                                                            row["AFattributeGUID"] = attributeGUID;
-                                                                                            row["AFData_ID"] = AFData_ID;
-                                                                                            row["dBRef"] = dBRef;
-                                                                                            attributeTable.Rows.Add(row);*/
-                                                string[] attpropList = { attributePath, attributeName, attributeGUID, dBRef };
-                                                AttributeProperties.Add(AFData_ID, attpropList);
-
+                                                    string[] attpropList = { attributePath, attributeName, attributeGUID, dBRef };
+                                                    AttributeProperties.Add(AFData_ID, attpropList);
                                             }
-                                        }
-                                         
+                                           
+                                        }                                        
                                     }
                                 }
                             }
@@ -166,8 +197,7 @@ namespace PIVisionURLAttributeIdentifier
                                       
                                     }
                                 }
-                            }
-                            
+                            }                            
                         }
                     }
                 
@@ -187,7 +217,6 @@ namespace PIVisionURLAttributeIdentifier
                         attributeTable.Rows.Add(row);
 
                         }
-
                     }
                     for (int j = 0; j < attributeTable.Rows.Count; j++)
                     {
@@ -196,24 +225,37 @@ namespace PIVisionURLAttributeIdentifier
                         {
                             attributeTable.Rows[j]["Server"] = AFServer_AFDatabase[0];
                             attributeTable.Rows[j]["AFDatabase"] = AFServer_AFDatabase[1];
-
                         }
                     }
 
             return attributeTable;
         }
-
         public DataTable UpdateDTwithValueSymbolConfig(DataTable dt)
         {
             foreach (DataRow dr in dt.Rows)
             {
-                var test = dr["EditorDisplay"].ToString();
-                var test1 = dr["SymbolNum"].ToString();
-                Tuple<string, string> tpl = getValueSymbolConfiguration(dr["EditorDisplay"].ToString(), dr["SymbolNum"].ToString());
-                dr["LabelType"] = tpl.Item1;
-                dr["CustomLabel"] = tpl.Item2;
+/*                string test = dr["EditorDisplay"].ToString();
+                string test1 = dr["SymbolNum"].ToString();*/
+                if (dr["SymbolNum"].ToString() != "")
+                {
+                    Tuple<string, string> tpl = getValueSymbolConfiguration(dr["EditorDisplay"].ToString(), dr["SymbolNum"].ToString());
+                    /*string test2 =tpl.Item1;*/
+                    dr["LabelType"] = tpl.Item1;
+                    dr["CustomLabel"] = tpl.Item2;
+                }             
             }
+            RemoveNullColumnFromDataTable(dt);
             return dt; 
+        }
+
+        public static void RemoveNullColumnFromDataTable(DataTable dt)
+        {
+            for (int i = dt.Rows.Count - 1; i >= 0; i--)
+            {
+                if (dt.Rows[i]["LabelType"] == DBNull.Value)
+                    dt.Rows[i].Delete();
+            }
+            dt.AcceptChanges();
         }
 
         public DataTable FormatDatable_create_attribute_element_columns(DataTable datatable)
@@ -244,9 +286,6 @@ namespace PIVisionURLAttributeIdentifier
             for (int i = 0; i < datatable.Rows.Count; i++)
             {
                 string FullDataSource = datatable.Rows[i][3].ToString();
-
-
-
                 if (FullDataSource.Contains("?"))
                 {
                     /*  FullDataSource = FullDataSource.TrimStart('\\');*/
@@ -279,7 +318,6 @@ namespace PIVisionURLAttributeIdentifier
 
                     attDetails.Remove(attDetails[0]);
                     //EITHER DELETE INITIAL ROW OR EDIT INITIAL ROW AND LOOP FROM i=1 INSTEAD OF FOREACH
-
 
                     foreach (List<string> attList in attDetails)
                     {                       
@@ -328,7 +366,6 @@ namespace PIVisionURLAttributeIdentifier
         {
             List<List<string>> attributesInCollection = new List<List<string>>();
             
-
             JObject json = JObject.Parse(editorDisplay.ToString());
             foreach (var item in json["Symbols"])
             {
@@ -337,29 +374,49 @@ namespace PIVisionURLAttributeIdentifier
                     var StencilSymbols = item["StencilSymbols"];
                     foreach (var obj in StencilSymbols)
                     {
-                        if (obj.ToString().Contains("DataSources"))
+                        if (obj.ToString().Contains("DataSources") && obj.ToString().Contains("\"SymbolType\": \"value\""))
                         {
                             List<string> attributeDetails = new List<string>();
                             /*util.WriteInYellow(obj.ToString());*/
                             string FullDataSource = obj["DataSources"][0].ToString();
 
-                            string[] subs = FullDataSource.Split('?');
+                            if (FullDataSource.Contains("?"))
+                            {
+                                string[] subs = FullDataSource.Split('?');
 
-                            string elementPath = subs[0].Substring(3); //removing initial 3 characters "af:"
-                            string[] subs1 = FullDataSource.Split('\\');
-                            string server = subs1[2]; ;
-                            string databasename = subs1[3];
+                                string elementPath = subs[0].Substring(3); //removing initial 3 characters "af:"
+                                string[] subs1 = FullDataSource.Split('\\');
+                                string server = subs1[2]; ;
+                                string databasename = subs1[3];
 
-                            /*string attributeName = "|"+subs2[1].Split('?')[0];*/
-                            string attributeName = subs[1].Substring(36); //removing initial 36 characters representing GUID
-                            string attributePath = elementPath + attributeName;
-                            string afattGUID = subs[1].Split('|')[0];
+                                /*string attributeName = "|"+subs2[1].Split('?')[0];*/
+                                string attributeName = subs[1].Substring(36); //removing initial 36 characters representing GUID
+                                string attributePath = elementPath + attributeName;
+                                string afattGUID = subs[1].Split('|')[0];
+                                attributeDetails.Add(server);
+                                attributeDetails.Add(databasename);
+                                attributeDetails.Add(attributePath);
+                                attributeDetails.Add(attributeName);
+                                attributeDetails.Add(afattGUID);
+                            }
+                            else
+                            {
+                                string attributePath = FullDataSource.Substring(3); //removing initial 3 characters "af:"
+                                string[] subs1 = FullDataSource.Split('\\');
+                                string server = subs1[2]; ;
+                                string databasename = subs1[3];
+/*                                string attributeName = FullDataSource.Split('|')[1];
+*/                                string attributeName = FullDataSource.Split('|')[FullDataSource.Split('|').Length-1];
+                                string afattGUID = "noGUID";
+                                attributeDetails.Add(server);
+                                attributeDetails.Add(databasename);
+                                attributeDetails.Add(attributePath);
+                                attributeDetails.Add(attributeName);
+                                attributeDetails.Add(afattGUID);
+                            }
+                            
 
-                            attributeDetails.Add(server);
-                            attributeDetails.Add(databasename);
-                            attributeDetails.Add(attributePath);
-                            attributeDetails.Add(attributeName);
-                            attributeDetails.Add(afattGUID);
+                            
 
                             var config = obj["Configuration"];
                             var symboltype = obj["SymbolType"].ToString();
@@ -368,17 +425,17 @@ namespace PIVisionURLAttributeIdentifier
                             string customName = "";
                             if (obj["SymbolType"].ToString() == "value")
                             {
-                                var datasource = obj["DataSources"];
+                               /* var datasource = obj["DataSources"];*/
 
                                 if (!config.ToString().Contains("NameType"))
                                 {
-                                    labeltype = "F (collection)";
+                                    labeltype = "F (col)";
                                     attributeDetails.Add(labeltype);
                                     attributeDetails.Add(customName);
                                 }
                                 else
                                 {
-                                    labeltype = config["NameType"].ToString() + " (collection)";
+                                    labeltype = config["NameType"].ToString() + " (col)";
                                     attributeDetails.Add(labeltype);
 
                                     if (labeltype == "C")
@@ -393,15 +450,12 @@ namespace PIVisionURLAttributeIdentifier
                                 }
                             }
                             attributesInCollection.Add(attributeDetails);
-                        }
-                      
-                        
+                        }                                    
                     }
                 }
             }
             return attributesInCollection;
         }
-
         public void FormatDatatable_getSymbolconfig(DataTable datatable)
         {
             datatable.Columns.Add("SymbolNumber", typeof(string));
@@ -463,13 +517,10 @@ namespace PIVisionURLAttributeIdentifier
                     }
                     for (int j = 0; j < Symbols_AFDataID.Count; j++)
                     {
-                        /*                  string var1 = datatable.Rows[i]["AFData_ID"].ToString();
-                                            string var2 = Symbols_AFDataID[j][0];*/
                         if (datatable.Rows[i]["AFData_ID"].ToString() == Symbols_AFDataID[j][0])
                         {
                             datatable.Rows[i]["SymbolNumber"] = Symbols_AFDataID[j][1];
-                            /*string var3 = Symbols_AFDataID[j][1];*/
-                            /*Console.WriteLine("Attribute: "+ datatable.Rows[i]["AFattributeName"] + "AFDataID: " + datatable.Rows[i]["AFData_ID"] + " SymbolNumber: " + datatable.Rows[i]["SymbolNumber"]);*/
+            
                         }
                     }
                 }
@@ -511,11 +562,11 @@ namespace PIVisionURLAttributeIdentifier
                         {
                             if (!config.ToString().Contains("NameType"))
                             {
-                                valueSymbolConfig = "F (collection)";
+                                valueSymbolConfig = "F (col)";
                             }
                             else
                             {
-                                valueSymbolConfig = config["NameType"].ToString()+" (collection)";
+                                valueSymbolConfig = config["NameType"].ToString()+" (col)";
                                 if (valueSymbolConfig == "C")
                                 {
                                     if (config.ToString().Contains("CustomName"))
@@ -556,7 +607,6 @@ namespace PIVisionURLAttributeIdentifier
         public void TestingSQLConnection(string sqlserver)
         {
             string connString = $@"Server={sqlserver};Database=PIVision;Integrated Security=true;MultipleActiveResultSets=true"; /*---> using integrated security*/
-            /* string connString = $@"Server={sqlserver};Database=PIVision;User ID=XavierF;password=XavierF!!;MultipleActiveResultSets=true";*/ /*---> using SQL user*/
             SqlConnection connection = new SqlConnection(connString);
             connection.Open();
         }
@@ -568,15 +618,13 @@ namespace PIVisionURLAttributeIdentifier
             bool repeat = true;
             string sqlInstance = "";
 
-
             while (repeat)
             {
                 Console.ForegroundColor = ConsoleColor.White;
                 sqlInstance = Console.ReadLine();
-
                 try
                 {
-                    util.WriteInYellow("Validating connection to the PIVision SQL database...");
+                    util.WriteInGray("Validating connection to the PIVision SQL database...");
                     TestingSQLConnection(sqlInstance);
                     repeat = false;
                 }

@@ -1,1 +1,1 @@
-﻿SELECT [DisplayID],Name, EditorDisplay, COG FROM [PIVision].[dbo].[View_Displays] where COG is not null 
+﻿SELECT [DisplayID],Name, EditorDisplay, COG FROM [PIVisionBeforeUtility].[dbo].[View_Displays] where COG is not null
