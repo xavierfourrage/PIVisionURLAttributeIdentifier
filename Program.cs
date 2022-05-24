@@ -18,7 +18,6 @@ namespace PIVisionURLAttributeIdentifier
         static void Main(string[] args)
         {
             file.AutoFlush = true;
-            /* file.WriteLine("test");*/
 
             SQLdata visiondata = new SQLdata();
             Utilities util = new Utilities();
@@ -34,7 +33,7 @@ namespace PIVisionURLAttributeIdentifier
             util.WriteInGreen("SQL records retrieved");
             util.WriteInGray("Formatting records...");
 
-            //Testing faster way to retrieve and format dataTable           
+            //Faster way to retrieve and format dataTable: building a table of displays containing COG and EditorDisplay, then adding more rows per displays with attr config        
             VisionDataTable = visiondata.formatDTandAddRowBasedOnCOGandEditorDisplay(VisionDataTable);
             visiondata.UpdateDTwithValueSymbolConfig(VisionDataTable);
 
@@ -53,7 +52,7 @@ namespace PIVisionURLAttributeIdentifier
                         util.WriteInBlue("DisplayID " + VisionDataTable.Rows[i]["DisplayID"] + ": " + VisionDataTable.Rows[i]["Name"]);
 
                         file.WriteLine(); // writing a line break to the output file
-                        file.WriteLine("Display: " + VisionDataTable.Rows[i][1]); // writing to the output file
+                        file.WriteLine("DisplayID " + VisionDataTable.Rows[i]["DisplayID"] + ": " + VisionDataTable.Rows[i]["Name"]); // writing to the output file
                     }
                     PrintOnlyURLBuilderDRAttr2(VisionDataTable, i);
                 }
@@ -116,15 +115,25 @@ namespace PIVisionURLAttributeIdentifier
                     string datareference = (afAtt.DataReferencePlugIn != null) ? afAtt.DataReferencePlugIn.ToString() : "None";
 
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("{0,-40}{1,-23}{2,-21}{3,5}",
-                                "Attr_name: " + afAtt.Name 
-                                , " | DR: " + datareference 
+                    Console.WriteLine("{0,-55}{1,-24}{2,-20}{3,-20}{4,-21}{5,-70}{6,5}",
+                                "Attr: " + afAtt.Name
+                                , " | DR: " + datareference
+                                , " | ShowLabel: " + VisionDataTable.Rows[i]["ShowLabel"]
+                                , " | ShowValue: " + VisionDataTable.Rows[i]["ShowValue"]
                                 , " | LabelType: " + VisionDataTable.Rows[i]["LabelType"]
-                                ," | Label: "+label );
+                                , " | Label: " + label
+                                , " | Value: " + afAtt.GetValue()
+                                ) ;
                     Console.ForegroundColor = ConsoleColor.White;
-                    file.WriteLine("Attr_name: " + afAtt.Name + " , DR: " + datareference + " , symbol#: " + VisionDataTable.Rows[i]["SymbolNum"]  + " , LabelType: " + VisionDataTable.Rows[i]["LabelType"] + " , Label: " + label + " , path: " + afAtt.GetPath() + " , Value: " + afAtt.GetValue() + " , Description: " + afAtt.Description); // writing to the output file
-                        /* }*/
-                    /*}*/
+                    file.WriteLine("Attr_name: " + afAtt.Name + " " +
+                        ", DR: " + datareference + " " +
+                        ", ShowLabel: " + VisionDataTable.Rows[i]["ShowLabel"]  + " " +
+                        ", ShowValue: " + VisionDataTable.Rows[i]["ShowValue"] + " " +
+                        ", LabelType: " + VisionDataTable.Rows[i]["LabelType"] + " " +
+                        ", LabelValue: " + label + " , path: " + afAtt.GetPath() + " " +
+                        ", Attr_Value: " + afAtt.GetValue() + " " +
+                        ", Description: " + afAtt.Description); // writing to the output file
+                        
                 }
                 else
                 {
@@ -134,7 +143,17 @@ namespace PIVisionURLAttributeIdentifier
             }
             catch (Exception ex)
             {
-                util.WriteInRed(ex.Message);
+                if (ex.Message == "Object reference not set to an instance of an object.")
+                {
+                    util.WriteInRed("Could not connect to AF dB: " + VisionDataTable.Rows[i]["AFDatabase"].ToString());
+                    file.WriteLine("Could not connect to AF dB: " + VisionDataTable.Rows[i]["AFDatabase"].ToString());
+                }
+                else
+                {
+                    util.WriteInRed(ex.Message);
+                    file.WriteLine(ex.Message);
+                }
+                
             }
 
         }

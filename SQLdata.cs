@@ -21,7 +21,7 @@ namespace PIVisionURLAttributeIdentifier
             DataTable dataTable = new DataTable();
             string connString = $@"Server={sqlserver};Database=PIVision;Integrated Security=true;MultipleActiveResultSets=true"; /*---> using integrated security*/
                     
-            string query = File.ReadAllText(@"..\..\Queries\query.sql");
+            string query = File.ReadAllText(@".\Queries\query.sql");
 
             SqlConnection connection = new SqlConnection(connString);
             SqlCommand command = new SqlCommand(query, connection);
@@ -47,11 +47,9 @@ namespace PIVisionURLAttributeIdentifier
                     DataRow row = attTable.NewRow();
                     row["DisplayID"] = r["DisplayID"];
                     row["Name"] = r["Name"];
-                    row["Server"] = newrow["Server"];
-                    
+                    row["Server"] = newrow["Server"];                  
                     row["EditorDisplay"] = r["EditorDisplay"];
-                    row["COG"] = r["COG"];
-                   
+                    row["COG"] = r["COG"];                  
                     row["AFDatabase"] = newrow["AFDatabase"];
                     row["AttributePath"] = newrow["AttributePath"];
                     row["AFattributeName"] = newrow["AFattributeName"];
@@ -59,6 +57,8 @@ namespace PIVisionURLAttributeIdentifier
                     row["SymbolNum"] = newrow["SymbolNum"];
                     row["LabelType"] = "";
                     row["CustomLabel"] = "";
+                    row["ShowValue"] = "";
+                    row["ShowLabel"] = "";
                     attTable.Rows.Add(row);
 
                 }
@@ -72,23 +72,22 @@ namespace PIVisionURLAttributeIdentifier
                         row["DisplayID"] = r["DisplayID"];
                         row["Name"] = r["Name"];
                         row["Server"] = l[0];
-
                         row["EditorDisplay"] = r["EditorDisplay"];
                         row["COG"] = r["COG"];
-
                         row["AFDatabase"] = l[1];
                         row["AttributePath"] = l[2];
                         row["AFattributeName"] = l[3];
                         row["AFattributeGUID"] = l[4];
                         row["SymbolNum"] = "";
-                        row["LabelType"] = l[5];
-                        row["CustomLabel"] = l[6];
+                        row["ShowValue"] = l[5];
+                        row["ShowLabel"] = l[6];
+                        row["LabelType"] = l[7];
+                        row["CustomLabel"] = l[8];
 
                         attTable.Rows.Add(row);
                     }
                 }               
             }
-
             return attTable;
         }
 
@@ -161,7 +160,6 @@ namespace PIVisionURLAttributeIdentifier
 
                                                     string[] attpropList = { attributePath, attributeName, attributeGUID, dBRef };
                                                     AttributeProperties.Add(AFData_ID, attpropList);
-
                                                 }
                                             }
                                     /*      <AFAttribute Name="Reactor - Operating Windows Parameters (Alarm)" ElementPath="FCC\PAR" />*/
@@ -176,8 +174,7 @@ namespace PIVisionURLAttributeIdentifier
 
                                                     string[] attpropList = { attributePath, attributeName, attributeGUID, dBRef };
                                                     AttributeProperties.Add(AFData_ID, attpropList);
-                                            }
-                                           
+                                            }                                          
                                         }                                        
                                     }
                                 }
@@ -234,14 +231,13 @@ namespace PIVisionURLAttributeIdentifier
         {
             foreach (DataRow dr in dt.Rows)
             {
-/*                string test = dr["EditorDisplay"].ToString();
-                string test1 = dr["SymbolNum"].ToString();*/
-                if (dr["SymbolNum"].ToString() != "")
+                if (dr["SymbolNum"].ToString() != "") // only editing non collection symbols since those have already been scanned in formatDTandAddRowBasedOnCOGandEditorDisplay
                 {
-                    Tuple<string, string> tpl = getValueSymbolConfiguration(dr["EditorDisplay"].ToString(), dr["SymbolNum"].ToString());
-                    /*string test2 =tpl.Item1;*/
-                    dr["LabelType"] = tpl.Item1;
-                    dr["CustomLabel"] = tpl.Item2;
+                    List<string> valueSymbolConfig = getValueSymbolConfiguration(dr["EditorDisplay"].ToString(), dr["SymbolNum"].ToString());
+                    dr["LabelType"] = valueSymbolConfig[0];
+                    dr["CustomLabel"] = valueSymbolConfig[1];
+                    dr["ShowValue"] = valueSymbolConfig[2];
+                    dr["ShowLabel"] = valueSymbolConfig[3];
                 }             
             }
             RemoveNullColumnFromDataTable(dt);
@@ -339,7 +335,6 @@ namespace PIVisionURLAttributeIdentifier
                         attributeTable.Rows.Add(row);
                     }
                 }
-
             }
             foreach (DataRow newrow in attributeTable.Rows)
             {
@@ -405,8 +400,8 @@ namespace PIVisionURLAttributeIdentifier
                                 string[] subs1 = FullDataSource.Split('\\');
                                 string server = subs1[2]; ;
                                 string databasename = subs1[3];
-/*                                string attributeName = FullDataSource.Split('|')[1];
-*/                                string attributeName = FullDataSource.Split('|')[FullDataSource.Split('|').Length-1];
+/*                              string attributeName = FullDataSource.Split('|')[1];
+*/                              string attributeName = FullDataSource.Split('|')[FullDataSource.Split('|').Length-1];
                                 string afattGUID = "noGUID";
                                 attributeDetails.Add(server);
                                 attributeDetails.Add(databasename);
@@ -415,17 +410,15 @@ namespace PIVisionURLAttributeIdentifier
                                 attributeDetails.Add(afattGUID);
                             }
                             
-
-                            
-
                             var config = obj["Configuration"];
-                            var symboltype = obj["SymbolType"].ToString();
-                            var itemName = item["Name"].ToString();
+/*                          var symboltype = obj["SymbolType"].ToString();
+                            var itemName = item["Name"].ToString();*/
                             string labeltype = "";
                             string customName = "";
                             if (obj["SymbolType"].ToString() == "value")
                             {
-                               /* var datasource = obj["DataSources"];*/
+                                attributeDetails.Add(config["ShowValue"].ToString());
+                                attributeDetails.Add(config["ShowLabel"].ToString());
 
                                 if (!config.ToString().Contains("NameType"))
                                 {
@@ -531,59 +524,33 @@ namespace PIVisionURLAttributeIdentifier
             {
                 if (datatable.Rows[i]["Collection"].ToString() == "0")
                 {
-                    datatable.Rows[i]["LabelType"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString()).Item1;
+                    datatable.Rows[i]["LabelType"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString())[0];
 
                     if (datatable.Rows[i]["LabelType"].ToString() == "C")
                     {
-                        datatable.Rows[i]["CustomLabel"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString()).Item2;
+                        datatable.Rows[i]["CustomLabel"] = getValueSymbolConfiguration(datatable.Rows[i]["EditorDisplay"].ToString(), datatable.Rows[i]["SymbolNumber"].ToString())[1];
                     }
                 }
                    
             }
         }
-        public Tuple<string,string> getValueSymbolConfiguration(string editorDisplay, string SymbolNumber)
+        public List<string> getValueSymbolConfiguration(string editorDisplay, string SymbolNumber)
         {
             //return configuration of Value symbolNumber
             string valueSymbolConfig = null;
             string customName = null;
+            string ShowValue = null;
+            string ShowLabel = null;
+            List<string> valueSymbolConfiguration = new List<string>();
             JObject json = JObject.Parse(editorDisplay.ToString());
             foreach (var item in json["Symbols"])
             {
-                if (item["SymbolType"].ToString() == "collection")
-                {
-                    var StencilSymbols = item["StencilSymbols"];
-                    foreach (var obj in StencilSymbols)
-                    {
-                        /*util.WriteInYellow(obj.ToString());*/
-                        var config = obj["Configuration"];
-                        var symboltype = obj["SymbolType"].ToString();
-                        var itemName = item["Name"].ToString();
-                        if (obj["SymbolType"].ToString() == "value" && item["Name"].ToString() == SymbolNumber)
-                        {
-                            if (!config.ToString().Contains("NameType"))
-                            {
-                                valueSymbolConfig = "F (col)";
-                            }
-                            else
-                            {
-                                valueSymbolConfig = config["NameType"].ToString()+" (col)";
-                                if (valueSymbolConfig == "C")
-                                {
-                                    if (config.ToString().Contains("CustomName"))
-                                    {
-                                        customName = config["CustomName"].ToString();
-                                    }                                       
-                                }
-                            }
-                        }                    
-                    }
-                }
-                else
-                {
                     var config = item["Configuration"];
 
                     if (item["SymbolType"].ToString() == "value" && item["Name"].ToString() == SymbolNumber)
                     {
+                        ShowValue = config["ShowValue"].ToString();
+                        ShowLabel = config["ShowLabel"].ToString();
                         if (!config.ToString().Contains("NameType"))
                         {
                             valueSymbolConfig = "F";
@@ -600,9 +567,12 @@ namespace PIVisionURLAttributeIdentifier
                             }
                         }
                     }
-                }
             }
-            return new Tuple<string, string>(valueSymbolConfig,customName);
+            valueSymbolConfiguration.Add(valueSymbolConfig);
+            valueSymbolConfiguration.Add(customName);
+            valueSymbolConfiguration.Add(ShowValue);
+            valueSymbolConfiguration.Add(ShowLabel);
+            return valueSymbolConfiguration;
         }
         public void TestingSQLConnection(string sqlserver)
         {

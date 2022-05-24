@@ -34,6 +34,8 @@ namespace PIVisionURLAttributeIdentifier
             attributeTable.Columns.Add("SymbolNum", typeof(string));
             attributeTable.Columns.Add("LabelType", typeof(string));
             attributeTable.Columns.Add("CustomLabel", typeof(string));
+            attributeTable.Columns.Add("ShowValue", typeof(string));
+            attributeTable.Columns.Add("ShowLabel", typeof(string));
             return attributeTable;
 
         }
