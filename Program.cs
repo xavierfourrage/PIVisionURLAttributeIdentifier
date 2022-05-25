@@ -115,7 +115,7 @@ namespace PIVisionURLAttributeIdentifier
                     string datareference = (afAtt.DataReferencePlugIn != null) ? afAtt.DataReferencePlugIn.ToString() : "None";
 
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("{0,-55}{1,-24}{2,-20}{3,-20}{4,-21}{5,-70}{6,5}",
+                    Console.WriteLine("{0,-55}{2,-20}{3,-20}{4,-21}{5,-70}{6,5}",
                                 "Attr: " + afAtt.Name
                                 , " | DR: " + datareference
                                 , " | ShowLabel: " + VisionDataTable.Rows[i]["ShowLabel"]

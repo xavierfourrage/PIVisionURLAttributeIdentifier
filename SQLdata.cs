@@ -384,7 +384,6 @@ namespace PIVisionURLAttributeIdentifier
                                 string server = subs1[2]; ;
                                 string databasename = subs1[3];
 
-                                /*string attributeName = "|"+subs2[1].Split('?')[0];*/
                                 string attributeName = subs[1].Substring(36); //removing initial 36 characters representing GUID
                                 string attributePath = elementPath + attributeName;
                                 string afattGUID = subs[1].Split('|')[0];
@@ -400,8 +399,8 @@ namespace PIVisionURLAttributeIdentifier
                                 string[] subs1 = FullDataSource.Split('\\');
                                 string server = subs1[2]; ;
                                 string databasename = subs1[3];
-/*                              string attributeName = FullDataSource.Split('|')[1];
-*/                              string attributeName = FullDataSource.Split('|')[FullDataSource.Split('|').Length-1];
+
+                                string attributeName = FullDataSource.Split('|')[FullDataSource.Split('|').Length-1];
                                 string afattGUID = "noGUID";
                                 attributeDetails.Add(server);
                                 attributeDetails.Add(databasename);
@@ -411,8 +410,6 @@ namespace PIVisionURLAttributeIdentifier
                             }
                             
                             var config = obj["Configuration"];
-/*                          var symboltype = obj["SymbolType"].ToString();
-                            var itemName = item["Name"].ToString();*/
                             string labeltype = "";
                             string customName = "";
                             if (obj["SymbolType"].ToString() == "value")
@@ -431,7 +428,7 @@ namespace PIVisionURLAttributeIdentifier
                                     labeltype = config["NameType"].ToString() + " (col)";
                                     attributeDetails.Add(labeltype);
 
-                                    if (labeltype == "C")
+                                    if (config["NameType"].ToString() == "C")
                                     {
                                         customName = config["CustomName"].ToString();
                                         attributeDetails.Add(customName);
