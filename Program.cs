@@ -23,7 +23,7 @@ namespace PIVisionURLAttributeIdentifier
             Utilities util = new Utilities();
 
             Console.WriteLine("This utility scans all PIVision displays and returns all attributes attached to Value symbols, with their label.");
-            Console.WriteLine("Label type definition: F=Full (default), A=Asset, P=Partial, D=Description, C=Custom. (col=Collection)");
+            Console.WriteLine("Label type definition: F=Full (default), A=Asset, P=Partial, D=Description, C=Custom. (*=symbol part of a collection)");
             Console.WriteLine(); //linebreak
 
             string sqlInstance = visiondata.ValidatingSQLConnection();
@@ -95,19 +95,19 @@ namespace PIVisionURLAttributeIdentifier
                                 case "C":
                                     label = VisionDataTable.Rows[i]["CustomLabel"].ToString();
                                     break;
-                                case "F (col)":                                   
+                                case "F*":                                   
                                     label = afAtt.GetPath().Substring(afAtt.Database.GetPath().Length).Substring(1);
                                     break;
-                                case "P (col)":
+                                case "P*":
                                     label = VisionDataTable.Rows[i]["AFattributeName"].ToString().Substring(1);
                                     break;
-                                case "D (col)":
+                                case "D*":
                                     label = afAtt.Description;
                                     break;
-                                case "A (col)":
+                                case "A*":
                                     label = afAtt.Element.Name;
                                     break;
-                                case "C (col)":
+                                case "C*":
                                     label = VisionDataTable.Rows[i]["CustomLabel"].ToString();
                                     break;
                     }
@@ -115,7 +115,7 @@ namespace PIVisionURLAttributeIdentifier
                     string datareference = (afAtt.DataReferencePlugIn != null) ? afAtt.DataReferencePlugIn.ToString() : "None";
 
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("{0,-55}{2,-20}{3,-20}{4,-21}{5,-70}{6,5}",
+                    Console.WriteLine("{0,-55}{2,-20}{3,-20}{4,-16}{5,-70}{6,5}",
                                 "Attr: " + afAtt.Name
                                 , " | DR: " + datareference
                                 , " | ShowLabel: " + VisionDataTable.Rows[i]["ShowLabel"]
@@ -125,13 +125,14 @@ namespace PIVisionURLAttributeIdentifier
                                 , " | Value: " + afAtt.GetValue()
                                 ) ;
                     Console.ForegroundColor = ConsoleColor.White;
-                    file.WriteLine("Attr_name: " + afAtt.Name + " " +
-                        ", DR: " + datareference + " " +
-                        ", ShowLabel: " + VisionDataTable.Rows[i]["ShowLabel"]  + " " +
-                        ", ShowValue: " + VisionDataTable.Rows[i]["ShowValue"] + " " +
-                        ", LabelType: " + VisionDataTable.Rows[i]["LabelType"] + " " +
-                        ", LabelValue: " + label + " , path: " + afAtt.GetPath() + " " +
-                        ", Attr_Value: " + afAtt.GetValue() + " " +
+                    file.WriteLine("Attr_name: " + afAtt.Name + 
+                        ", DR: " + datareference + 
+                        ", ShowLabel: " + VisionDataTable.Rows[i]["ShowLabel"]  + 
+                        ", ShowValue: " + VisionDataTable.Rows[i]["ShowValue"] + 
+                        ", LabelType: " + VisionDataTable.Rows[i]["LabelType"] + 
+                        ", LabelValue: " + label + 
+                        " , path: " + afAtt.GetPath() + 
+                        ", Attr_Value: " + afAtt.GetValue() + 
                         ", Description: " + afAtt.Description); // writing to the output file
                         
                 }

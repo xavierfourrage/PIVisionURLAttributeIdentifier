@@ -419,13 +419,13 @@ namespace PIVisionURLAttributeIdentifier
 
                                 if (!config.ToString().Contains("NameType"))
                                 {
-                                    labeltype = "F (col)";
+                                    labeltype = "F*";
                                     attributeDetails.Add(labeltype);
                                     attributeDetails.Add(customName);
                                 }
                                 else
                                 {
-                                    labeltype = config["NameType"].ToString() + " (col)";
+                                    labeltype = config["NameType"].ToString() + "*";
                                     attributeDetails.Add(labeltype);
 
                                     if (config["NameType"].ToString() == "C")
